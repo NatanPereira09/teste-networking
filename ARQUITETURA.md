@@ -1,191 +1,80 @@
-# Arquitetura — Plataforma de Gestão para Grupos de Networking
+# Arquitetura do Projeto – Next Networking
 
-> Documento de arquitetura para o teste técnico — plataforma de gestão de membros, indicações e monitoramento de performance.
+O projeto foi desenvolvido com base em uma estrutura simples e organizada, separando bem as responsabilidades entre o front-end, o back-end e o acesso ao banco de dados.
 
 ---
 
-## 1. Visão Geral
+## Organização geral
 
-A solução é uma aplicação **Fullstack** composta por:
+O Next.js já permite unir o front e o back na mesma aplicação.  
+Eu aproveitei isso para estruturar o sistema de uma forma bem prática:
 
-- **Frontend**: Next.js (React) — páginas públicas e privadas; SSR/SSG quando apropriado.
-- **Backend**: API REST (Next.js API Routes ou Express) — endpoints para intenções, membros, admin, indicações e dashboards.
-- **Banco de dados**: **PostgreSQL** (produção) / **SQLite** (desenvolvimento/testes). Usei **Prisma** como ORM para maior produtividade.
-- **Autenticação/Autorização**: Area administrativa protegida por variável de ambiente (apenas para o escopo do teste). Convites com token únicos para cadastro.
-- **Testes**: Jest + React Testing Library para frontend; Jest + supertest para endpoints.
+- **Páginas** (`/pages`) → São as rotas principais da aplicação. Cada arquivo representa uma página acessível pelo navegador.
+- **Rotas de API** (`/pages/api`) → Simulam o backend. Aqui estão os endpoints responsáveis por salvar intenções, aprovar convites, cadastrar membros e registrar indicações.
+- **Componentes** (`/components`) → São as partes reutilizáveis da interface (inputs, botões, listagens).
+- **Banco de dados (Prisma)** → Está definido no arquivo `schema.prisma`, que faz o mapeamento das tabelas.
+- **Estilos globais** → Feitos com Tailwind CSS, definidos em `globals.css`.
 
-## 2. Diagrama de Arquitetura (Mermaid)
+Essa separação deixa o código limpo e facilita entender onde cada parte atua.
 
-```mermaid
-flowchart LR
-  subgraph Client
-    A[Browser - Next.js pages]
-  end
-  subgraph Frontend
-    A --> B[Next.js (pages / app)]
-  end
-  subgraph API
-    B --> C[API Routes (Node.js) / Express]
-  end
-  subgraph DB
-    C --> D[(Postgres / SQLite via Prisma)]
-  end
-  C --> E[Email / Notifications (simulado)]
-  C --> F[File storage (S3 ou local)]
-```
+---
 
-## 3. Modelo de Dados (Prisma Schema / SQL)
+## Camadas e responsabilidades
 
-Escolha: **Relacional (PostgreSQL / SQLite)** — facilita consultas, joins para relatórios e integridade referencial.
+O projeto segue uma estrutura próxima do modelo **MVC**, adaptada para o Next.js:
 
-### Principais tabelas / entidades
+- **Model** → responsável pela comunicação com o banco via **Prisma ORM**.
+- **Controller** → são as rotas dentro de `/api`, que tratam a lógica de negócio.
+- **View** → composta pelas páginas e componentes React, responsáveis pela parte visual.
 
-- **Intentions** — submissões públicas de intenção de participação.
-  - id, name, email, company, message, status (PENDING / APPROVED / REJECTED), createdAt, updatedAt, processedBy, processedAt
+---
 
-- **Invitations** — token gerado ao aprovar intenção.
-  - id, intentionId, token, expiresAt, used (boolean), createdAt
+## Modelagem de dados
 
-- **Members** — cadastro completo de membros.
-  - id, name, email, company, phone, role, joinedAt, active (boolean), invitationId
+O banco foi feito com **SQLite** e o **Prisma ORM**, pela praticidade durante o teste técnico.  
+A modelagem segue o fluxo do sistema:
 
-- **Indications** — (opcional - se implementar sistema de indicações)
-  - id, fromMemberId, toMemberId, title, description, value, status (OPEN / CONTACTED / WON / LOST), createdAt
+- **Intent** → intenção de participação enviada por um visitante.
+- **Invitation** → convite gerado quando uma intenção é aprovada.
+- **Member** → pessoa cadastrada a partir de um convite.
+- **Indication** → registro de indicações entre membros da plataforma.
 
-- **Meetings**
-  - id, title, date, location, notes
+**Relações principais:**
+- Uma intenção aprovada gera um convite (1:1).
+- Um convite aceito cria um membro.
+- Um membro pode indicar outros membros (1:N).
 
-- **Attendance**
-  - id, meetingId, memberId, status (PRESENT / ABSENT / EXCUSED), checkInAt
+---
 
-- **Thanks (Obrigados)**
-  - id, fromMemberId, toMemberId, description, createdAt
+## Fluxo geral de dados
 
-- **Payments**
-  - id, memberId, amount, dueDate, status (PENDING / PAID / LATE), createdAt
+1. O usuário envia uma intenção pela página `/intention`.
+2. O administrador acessa `/admin`, usa a chave secreta e vê todas as intenções.
+3. Quando aprova uma intenção, o sistema cria um convite com um token.
+4. O convidado acessa o link do convite e completa o cadastro (vira um membro).
+5. Membros podem acessar `/indications` para registrar indicações de novos contatos.
 
-### Exemplo (Prisma simplified)
+---
 
-```prisma
-model Intention {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String
-  company   String?
-  message   String?
-  status    String   @default("PENDING")
-  processedBy String?
-  processedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  invitation Invitation?
-}
+## Decisões técnicas
 
-model Invitation {
-  id          Int      @id @default(autoincrement())
-  token       String   @unique
-  intention   Int      @unique
-  expiresAt   DateTime
-  used        Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  Intention   Intention @relation(fields: [intention], references: [id])
-}
+- **Next.js** foi escolhido por integrar facilmente frontend e backend.
+- **Tailwind CSS** foi usado pela agilidade e consistência visual.
+- **Prisma + SQLite** garantem um banco leve, fácil de configurar e suficiente para o escopo do teste.
+- A arquitetura é modular, então seria simples migrar para PostgreSQL ou MySQL no futuro.
 
-model Member {
-  id           Int @id @default(autoincrement())
-  name         String
-  email        String @unique
-  company      String?
-  phone        String?
-  role         String?
-  joinedAt     DateTime @default(now())
-  active       Boolean @default(true)
-  invitationId Int?
-}
-```
+---
 
-## 4. Estrutura de Componentes (Frontend)
+## Diagrama conceitual (simplificado)
 
-Projeto Next.js com organização por features + componentes compartilhados.
+Intention --(aprovada)--> Invitation --(token usado)--> Member --(cria)--> Indication
 
-```
-/src
-  /components
-    /forms
-      IntentForm.jsx
-      MemberSignupForm.jsx
-    /ui
-      Button.jsx
-      Input.jsx
-      Modal.jsx
-    /admin
-      IntentList.jsx
-      IntentItem.jsx
-  /pages
-    /api
-      intents.js
-      admin/intents.js
-      signup/[token].js
-    index.jsx            // Home
-    /intention.jsx       // Form public
-    /admin/index.jsx     // Admin area
-    /signup/[token].jsx  // Signup page via token
-  /lib
-    prisma.ts
-    auth.ts
-  /utils
-    emailSimulator.ts
-  /styles
-```
+yaml
+Copiar código
 
-**Estado global**: `React Context` (Cartões, auth mínima) ou `SWR` para fetch e cache; não é necessário Redux.
+---
 
-**Reutilização**: inputs e botões genéricos; formulários desacoplados do transporte de dados (hooks `useIntention`, `useInvitation`).
+## Conclusão
 
-## 5. Definição da API (principais endpoints)
-
-> Todos retornam JSON. Exemplos com REST.
-
-### 1. `POST /api/intents` — enviar intenção
-- **Request**: `{ name, email, company?, message? }`
-- **Response 201**: `{ id, status: 'PENDING' }`
-
-### 2. `GET /api/admin/intents` — listar intenções (admin protected)
-- **Headers**: `x-admin-key: <ADMIN_KEY>` (variável de ambiente)
-- **Response**: `[{ id, name, email, company, status, createdAt }]`
-
-### 3. `POST /api/admin/intents/:id/approve` — aprovar intenção
-- **Response**: `{ invitationToken, invitationLink }`
-  - cria registro em `Invitation` com token (UUID) e `expiresAt` (ex: 7 dias)
-
-### 4. `POST /api/admin/intents/:id/reject`
-- **Response**: `{ ok: true }`
-
-### 5. `GET /api/invite/:token` — validar token
-- **Response 200**: `{ valid: true, intentionId, email }`
-
-### 6. `POST /api/signup` — completar cadastro via token
-- **Request**: `{ token, name, email, phone, company, password? }`
-- **Response 201**: `{ memberId }`
-
-### 7. (Opcional) Indicações
-- `POST /api/indications` — criar indicação
-- `GET /api/members/:id/indications` — ver indicações feitas/recebidas
-- `PATCH /api/indications/:id` — atualizar status
-
-## 6. Fluxos principais
-
-1. **Enviar intenção** → ADMIN aprova → API cria `Invitation` (token) → Admin copia link ou sistema simula envio por e‑mail mostrando link → usuário acessa `/signup/<token>` → completa cadastro → `Member` criado.
-
-2. **Admin area** protege por `x-admin-key` ou `ADMIN_KEY` em env; no teste pode-se usar proteção simples.
-
-## 7. Testes (abordagem)
-
-- Frontend: tests para `IntentForm` (validação e submit), `MemberSignupForm`.
-- Backend: testes para endpoints `POST /api/intents`, `POST /api/admin/intents/:id/approve`, `GET /api/invite/:token`, `POST /api/signup`.
-
-## 8. Observações de Infra & Deploy
-
-- **Desenvolvimento**: Next.js + SQLite local com Prisma.
-- **Produção**: Postgres + Vercel (frontend) + PlanetScale/Heroku for DB or DigitalOcean; Migration via `prisma migrate`.
-- **Env vars**: DATABASE_URL, ADMIN_KEY, NEXTAUTH_SECRET (se usar), TOKEN_EXPIRES_DAYS.
+A estrutura foi pensada para ser clara, didática e fácil de entender.  
+Cada parte cumpre bem o seu papel, e o fluxo reflete exatamente o processo descrito no documento do teste técnico.
