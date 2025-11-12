@@ -1,4 +1,4 @@
-# 🚀 Next Networking – Teste Técnico Desenvolvedor
+# Next Networking – Teste Técnico Desenvolvedor
 
 Este projeto foi desenvolvido como parte do **teste técnico** para a vaga de Desenvolvedor, atendendo todos os requisitos do documento enviado.
 
@@ -6,7 +6,7 @@ A aplicação foi construída com **Next.js (React)**, **Prisma ORM** e **Tailwi
 
 ---
 
-## 📚 Visão Geral
+## Visão Geral
 
 A plataforma simula um sistema de **rede de contatos empresariais**, com três fluxos principais:
 
@@ -17,7 +17,7 @@ A plataforma simula um sistema de **rede de contatos empresariais**, com três f
 
 ---
 
-## 🧩 Tecnologias Utilizadas
+## Tecnologias Utilizadas
 
 - **Next.js** – Framework React com suporte nativo a rotas e APIs.  
 - **Prisma ORM** – Mapeamento objeto-relacional para acesso ao banco.  
@@ -29,17 +29,17 @@ A plataforma simula um sistema de **rede de contatos empresariais**, com três f
 
 
 
-## ⚙️ Instalação e Execução
+## Instalação e Execução
 
-### 1️⃣ Clonar o repositório
+### 1- Clonar o repositório
 ```bash
 git clone https://github.com/natanpmendes/next-network.git
 cd next-network
 
-2️⃣ Instalar dependências
+2- Instalar dependências
 npm install
 
-3️⃣ Configurar variáveis de ambiente
+3- Configurar variáveis de ambiente
 
 Crie o arquivo .env na raiz do projeto:
 
@@ -49,10 +49,10 @@ ADMIN_KEY="12345"
 
 (a chave ADMIN_KEY é usada na tela de administração)
 
-4️⃣ Rodar as migrações do banco
+4- Rodar as migrações do banco
 npx prisma migrate dev --name init
 
-5️⃣ Rodar a aplicação
+5- Rodar a aplicação
 npm run dev
 
 
@@ -60,7 +60,7 @@ Abra o navegador e acesse:
 
 http://localhost:3000
 
-🧠 Estrutura de Páginas
+Estrutura de Páginas
 Rota	Descrição
 /	Página inicial com acesso rápido às seções principais.
 /intention	Formulário para envio de intenção de participação.
