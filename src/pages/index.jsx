@@ -15,6 +15,7 @@ export default function Home() {
           <NavButton href="/intention">Enviar intenção</NavButton>
           <NavButton href="/admin">Área Admin</NavButton>
           <NavButton href="/admin/invitations">Convites (simulados)</NavButton>
+          <NavButton href="/indications">Indicações</NavButton>
         </div>
 
         <footer className="text-xs text-gray-400 mt-8">
